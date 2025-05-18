@@ -1,0 +1,93 @@
+QR code life time
+
+*********************************Borne d'E/S*********************************************
+
+OnScan
+Verifier la validite du QR code(actif ou non) AND matricule exist
+
+si (actif) {
+
+	//verifier si la date d'entree est rempli
+	
+	si (date_entree not exist [AKA 5ona ghay5el]) {
+		//remplir matricule
+		//remplir date_entree
+		//statuts = "En cours"
+	}
+
+	si (date_entree exist[AKA 5ona ghay5rej]){
+		//verifier la date de sortie si exists AND statuts = "payé" and matricule_dans_ticket == matricule_scanne
+		si (date sortie exists AND satuts = payé AND matricule_dans_ticket == matricule_scanne){
+			//detruire le QR code et le rendre inactif
+		}
+}
+*********************************Borne de payement *********************************************
+Verifier la validite du QR code(actif ou non) AND matricule exist
+
+si (actif){
+	//verifier si la date d'entree est rempli ==>(ila ma kantch rempli-->Erreur server)
+	si(date_entree exists){
+	
+		//verifier si le matricule_dans_ticket == matricule_scanne
+		 si (matricule_dans_ticket == matricule_scanne){
+			-remplir date de sortie
+			-calculer tarif
+			statuts = calculé 
+			-afficher ticket
+			//attendre payement
+			si (payement valide){
+				statuts = "payé"	
+			}
+		}
+	}
+}
+********************************Calculer tarif******************************************************
+marge gratuite: 5 min
+time <= 1h      ----> 5mad
+2h<= time <= 12h ---> 2h/hour
++12h ---------------> forfait: 20dh each 12 +extra time
+
+12h units
+2h units
+1h units
+
+
+calculer time in hours: 
+
+nafs chher -> nafs nhar -> calculer time
+
+month = 720h
+day = 24h
+if(time <= 5min){
+	tarif = 0mad
+}
+else if(time <= 60min){
+	tarif = 5mad
+}
+else {
+	total = x*12h_unit + y*2h unit
+				1h
+
+	12h_units = total/12(div entiere)
+	2h units = modulo(total/12)
+
+	tarif = 12h_units*20 + 2h_units*2
+}
+
+return tarif
+
+
+exemple:
+date_entree: 2025-11-2 19:12:34
+date_sortie: 2025-11-2 23:22:34
+
+logic:
+
+split time and date
+split day,month, year
+split hour, min
+
+calculate difference between entree&sortie (month_S - month_E, day_S - day_E) ==> convert to minutes
+calculate difference between entree&sortie (hour_S - hour_E, minute_S - minute_E), convert hours difference to minutes, add everything up
+
+

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Borne de Parking</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+      body {
+        background-color: #f8f9fa;
+      }
+      #qr-reader {
+        max-width: 400px;
+        margin: auto;
+      }
+    </style>
+  </head>
+
+  <body class="text-center py-5">
+    <div class="container">
+      <h2 class="mb-3 text-primary fw-bold">📷 Validation du paiement</h2>
+      <a class="text-decoration-none fw-semibold mb-4" href="../Borne/BornePaiement.html">
+        <img src="https://static.vecteezy.com/system/resources/thumbnails/019/858/315/small_2x/back-flat-color-outline-icon-free-png.png" alt="Logo" width="21" height="24" class="d-inline-block align-text-top">
+        Retour
+      </a>  
+      <div class="card shadow mx-auto" style="max-width: 450px">
+        <div class="card-body">
+          <h2 class="mb-3 text-secondary fw-bold">Recu</h2>
+          <table class="table table-striped">
+            <tbody>
+              <h6 class="mb-3 fw-bold">Ticket no:<span id="id_ES"></span></h6>
+              <tr>
+                <td>Matricule</td>
+                <td id="matricule" class="fw-bold"></td>
+              </tr>
+              <tr>
+                <td>Date d'entree</td>
+                <td id="date_entree" class="fw-bold"></td>
+              </tr>
+              <tr>
+                <td>Date de sortie</td>
+                <td id="date_sortie" class="fw-bold"></td>
+              </tr>
+              <tr>
+                <td>Montant</td>
+                <td id="tarif" class="fw-bold"></td>
+              </tr>
+            </tbody>
+          </table>
+          <div id="qr-reader" class="mb-3"></div>
+
+          <div class="mb-3">
+            <select class="form-select" id="type_paiement" onchange="showForm()" required>
+              <option value="">choisissez le type d'operation</option>
+              <option value="espece">Espece</option>
+              <option value="carte">Carte de credit</option>
+            </select>
+          </div>
+
+          <!-- Formulaire pour espèces -->
+          <form id="especeForm" class="mb-3 d-none" onsubmit="validerPaiement(event)">
+            <div class="mb-3">
+              <label for="montant" class="form-label">Montant</label>
+              <input type="number" step="0.01" class="form-control" id="montant" placeholder="valdiez le montant..." required>
+            </div>
+            <button type="submit" class="btn btn-success px-3">Valider</button>
+          </form>
+
+          <!-- Formulaire pour carte -->
+          <form id="carteForm" class="mb-3 d-none" onsubmit="validerPaiement(event)">
+            <div class="mb-3">
+              <label for="numero" class="form-label">Numero de carte</label>
+              <input type="text" class="form-control" id="numero" placeholder="ex. 1234 5678 9012 3456" required>
+              <label for="expiration" class="form-label">Date d'expiration (MM/AA)</label>
+              <input type="text" class="form-control" id="expiration" placeholder="ex. 12/25" required>
+              <label for="cvc" class="form-label">CVC</label>
+              <input type="text" class="form-control" id="cvc" placeholder="ex. 123" required>
+            </div>
+            <button type="submit" class="btn btn-success px-3">Valider</button>
+          </form>
+
+          <div id="result" class="fw-semibold text-success mb-2">
+            ✅ En attente du scan...
+          </div>
+          <div id="responseContainer" class="alert alert-info d-none"></div>
+          <div id="verification" class="text-danger"></div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const ticketData = JSON.parse(localStorage.getItem("ESData"));
+      const resultContainer = document.getElementById("result");
+      
+      if (ticketData) {
+        document.getElementById("id_ES").innerText = ticketData.id_entree_sortie;
+        document.getElementById("tarif").innerText = ticketData.tarif + " MAD";
+        document.getElementById("date_entree").innerText = ticketData.date_entree.slice(0, 19).replace("T", " ");
+        document.getElementById("date_sortie").innerText = ticketData.date_sortie;
+        document.getElementById("matricule").innerText = ticketData.matricule;
+      }
+
+      function showForm() {
+        const paiement = document.getElementById("type_paiement").value;
+        document.getElementById("especeForm").classList.toggle("d-none", paiement !== "espece");
+        document.getElementById("carteForm").classList.toggle("d-none", paiement !== "carte");
+      }
+
+      function validerPaiement(event) {
+        event.preventDefault();
+        
+        const type_paiement = document.getElementById("type_paiement").value;
+        const montant = document.getElementById("montant")?.value;
+        const numero = document.getElementById("numero")?.value;
+        const expiration = document.getElementById("expiration")?.value;
+        const cvc = document.getElementById("cvc")?.value;
+
+        // Validation
+        if (type_paiement === "espece") {
+          if (!montant || isNaN(montant)) {
+            alert("Veuillez saisir un montant valide");
+            return;
+          }
+        }
+
+        if (type_paiement === "carte") {
+          if (!numero || !expiration || !cvc) {
+            alert("Veuillez saisir toutes les informations de la carte");
+            return;
+          }
+
+          if (numero.length !== 16 || isNaN(numero)) {
+            alert("Numéro de carte invalide (16 chiffres requis)");
+            return;
+          }
+
+          if (!/^\d{2}\/\d{2}$/.test(expiration)) {
+            alert("Format de date d'expiration invalide (MM/AA requis)");
+            return;
+          }
+
+          if (cvc.length !== 3 || isNaN(cvc)) {
+            alert("CVC invalide (3 chiffres requis)");
+            return;
+          }
+        }
+
+        // Préparation des données
+        const paymentData = {
+          type_paiement: type_paiement,
+          id_entree_sortie: ticketData.id_entree_sortie,
+          date_entree: ticketData.date_entree,
+          date_sortie: ticketData.date_sortie,
+          tarif: ticketData.tarif,
+          matricule: ticketData.matricule,
+          code_unique: ticketData.code_unique,
+        };
+
+        if (type_paiement === "espece") {
+          paymentData.montant = montant;
+        } else if (type_paiement === "carte") {
+          paymentData.numero = numero;
+          paymentData.expiration = expiration;
+          paymentData.cvc = cvc;
+        }
+
+        // Envoi de la requête
+        fetch("http://localhost:3000/pay/valider", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(paymentData),
+        })
+        .then(async (response) => {
+          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.message || "Erreur lors du paiement");
+          }
+          
+          resultContainer.style.color = "green";
+          resultContainer.innerText = "✅ " + (data.message || "Paiement accepté");
+          console.log("Paiement réussi:", data);
+          window.location.href = "Success.html";
+          
+          // Redirection ou autre action après succès
+          // window.location.href = "Success.html";
+        })
+        .catch((error) => {
+          resultContainer.style.color = "red";
+          resultContainer.innerText = "❌ " + error.message;
+          console.error("Erreur:", error);
+        });
+      }
+    </script>
+  </body>
+</html>
